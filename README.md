@@ -11,7 +11,7 @@ Supplementary materials for paper: La Roi, A., Hendriks, P., & Sprenger, S.A, Co
 
 [2c. Script for plotting GAMM models in SOV and SVO sentences](./WordOrderStudy_plots.Rmd)
 
-[2d. Data files time course analysis](./???.rdat)
+[2d. Data files time course analysis](./Preprocessing_persubject_epochICA/)
 
 [3a. GAMM analysis of topographic differences in mean voltage in 300-400 ms time window](./WordOrderStudy_TOPOanalysis.Rmd)
 
