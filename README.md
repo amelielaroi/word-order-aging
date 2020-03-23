@@ -3,7 +3,7 @@ Supplementary materials for paper: La Roi, A., Hendriks, P., & Sprenger, S.A, Co
 
 [1a. Preprocessing of data exported from EEGLAB](./WordOrderStudy_Preprocessing.Rmd)
 
-[1b. Exported data EEGLAB](./Analysis data_epochICA/)
+[1b. Exported data EEGLAB](./Analysis_data_epochICA/)
 
 [2a. GAMM analysis of amplitude change over time in SOV sentences](./WordOrderStudy_GAMManalysis_SOV.Rmd)
 
@@ -15,6 +15,6 @@ Supplementary materials for paper: La Roi, A., Hendriks, P., & Sprenger, S.A, Co
 
 [3a. GAMM analysis of topographic differences in mean voltage in 300-400 ms time window](./WordOrderStudy_TOPOanalysis.Rmd)
 
-[3b. Data files topographic analysis](./???.rdat)
+[3b. Data files topographic analysis](./Preprocessing_persubject_epochICA/)
 
 [4. CSV file with complete set of materials](./materials_complete_paper.csv)
