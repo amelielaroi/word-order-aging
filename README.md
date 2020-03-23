@@ -3,7 +3,7 @@ Supplementary materials for paper: La Roi, A., Hendriks, P., & Sprenger, S.A, Co
 
 [1a. Preprocessing of data exported from EEGLAB](./WordOrderStudy_Preprocessing.Rmd)
 
-[1b. Exported data EEGLAB](./Analysis data_epochICA/)
+[1b. Exported data EEGLAB](./Analysis data_epochICA /)
 
 [2a. GAMM analysis of amplitude change over time in SOV sentences](./WordOrderStudy_GAMManalysis_SOV.Rmd)
 
