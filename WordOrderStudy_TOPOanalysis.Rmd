@@ -1,0 +1,589 @@
+---
+title: "WordOrderStudy_TOPOanalysis"
+author: "Amélie la Roi"
+date: "March 23, 2020"
+output: html_document
+---
+
+Last update: March 23, 2020
+
+
+```{r}
+library(itsadug)
+library(mgcv)
+library(plyr)
+library(eegkit)
+library(ggplot2)
+```
+
+
+# Load data 
+```{r}
+# Save data between 300-400 ms
+datadir <- "./Preprocessing_persubject_epochICA/"
+allfiles <- dir(path=datadir)
+dat <- c()
+
+# Load and save data from all participants for all electrodes
+for(i in allfiles ){
+  print(i)
+  load(sprintf("%s/%s", datadir, i))
+
+  subdat <- droplevels(finalO[finalO$Time >= 300 & finalO$Time <= 400,])
+  dat <- rbind(dat, subdat)
+  subdat <- NULL
+}
+
+
+save(dat, file="./R output/allEl_300-400.rda", compress="xz")
+```
+
+# Add electrode locations
+```{r}
+# Load electrode locations
+data("eegcoord") # r package eegkit
+
+# Make column with electrode names
+eegcoord$Electrode <- rownames(eegcoord)
+eegcoord$Electrode <- as.factor(eegcoord$Electrode)
+
+# Convert Electrode column in EEG df to upper case
+levels(dat$Electrode) # check electrode names before converting
+dat$Electrode <- toupper(dat$Electrode)
+dat$Electrode <- as.factor(dat$Electrode)
+str(dat) # check if Electrode is a factor again
+levels(dat$Electrode) # check electrode names after converting
+
+# Merge electrode locations with voltages
+dat2 <- merge(dat, eegcoord, by = 'Electrode') # contains less rows than dat, so something is missing
+
+# Check which electrodes are not in the eegcoord data
+nas <- droplevels(dat2[is.na(dat2$x),]) # 190465 rows, corresponds to nrows(dat)-nrows(dat2)
+                                          # O9 & O10 are not in eegcoord data
+
+# Check positions of electrodes in eegcoord data
+eegcap(eegcoord$Electrode) # O9 and O10 correspond to I1 and I2 in the eegcoord data, respectively
+
+# Rename electrodes in eegcoord data
+levels(dat$Electrode)[levels(dat$Electrode)=="O9"] <- "I1"
+levels(dat$Electrode)[levels(dat$Electrode)=="O10"] <- "I2"
+
+# Merge electrode data
+dat2 <- merge(dat, eegcoord, by = 'Electrode') # dat2 now has same amount of rows as dat, so it worked
+head(dat2) # check data
+eegcap(levels(dat2$Electrode), type='2d', cex.label=1, col.label='black')
+```
+
+# Calculate averages
+```{r}
+# Calculate subject averages
+avgElMean <- ddply(dat2, c("Subject", "Age", "order", "critword", "Electrode", "x", "y", "z", "xproj", "yproj"), summarise,
+             subj.mV.median = median(mV, na.rm=TRUE),
+             subj.mV = mean(mV, na.rm=TRUE),
+             subj.mV = mean(mV, na.rm=TRUE),
+             subj.n = length(mV[!is.na(mV)]))
+
+# Make sure variables are factors
+avgElMean$Subject <- as.factor(avgElMean$Subject)
+avgElMean$order <- as.factor(avgElMean$order)
+avgElMean$critword <- as.factor(avgElMean$critword)
+avgElMean$Event <- interaction(avgElMean$Subject, avgElMean$order, avgElMean$critword, drop=TRUE)
+
+
+# Check number of data points to select gam (< 10000) or bam (> 10000)
+dim(avgElMean) # more than 10000 data points, so use bam
+
+# Save the data for use in Peregrine
+save(avgElMean,file="./R output/avgElMean.rda", compress="xz")
+
+# Make subset data for verb-final and verb-first sentence
+datElSOV <- droplevels(avgElMean[avgElMean$order == "verb-final",])
+datElSVO <- droplevels(avgElMean[avgElMean$order == "verb-first",])
+
+# Save data for later use in Peregrine
+save(datElSOV, file="./R output/datElSOV.rda", compress="xz")
+save(datElSVO, file="./R output/datElSVO.rda", compress="xz")
+
+
+```
+
+# SOV SENTENCES
+## Fit model for rho value
+```{r, fig.height=5, fig.width=5}
+# Basic model
+m0.el <- bam(subj.mV ~ te(x, y), data=datElSOV)
+plot_topo(m0.el, view=c("x", "y"))
+```
+
+
+# Add electrodes
+```{r}
+electrodes <- datElSOV[,c('x','y','Electrode')]
+electrodes <- as.list( electrodes[!duplicated(electrodes),] )
+
+```
+
+# Create binary predictors and ordered factors
+```{r, message=FALSE, fig.height=20, fig.width=10}
+# Binary predictors
+datElSOV$IsCorrect <- ifelse(datElSOV$critword=="correct", 1,0)
+datElSOV$IsLiteral <- ifelse(datElSOV$critword=="literal", 1,0)
+datElSOV$IsUnrelated <- ifelse(datElSOV$critword=="unrelated", 1,0)
+
+# Ordered factors
+datElSOV$CritCor <- as.ordered(datElSOV$critword == 'correct')
+contrasts(datElSOV$CritCor) <- "contr.treatment"
+datElSOV$CritLit <- as.ordered(datElSOV$critword == 'literal')
+contrasts(datElSOV$CritLit) <- "contr.treatment"
+datElSOV$CritUnrel <- as.ordered(datElSOV$critword == 'unrelated')
+contrasts(datElSOV$CritUnrel) <- "contr.treatment"
+
+# Save data for later use in Peregrine
+save(datElSOV, file="./R output/datElSOV.rda", compress="xz")
+
+```
+
+# Fit model with separate main effect and interaction effect
+```{r}
+# Fit full model
+if(FALSE){
+m1.el <- bam(subj.mV ~ critword 
+              + s(x, y, by=critword)
+              + s(Age, by=critword)
+              + ti(x, y, Age, d=c(2,1), by=critword)
+              + s(Age, Electrode, bs="fs", m=1),
+              data=datElSOV, discrete = FALSE, method="ML")
+}else{print(load("./Models/m1.el.rda"))}
+
+# Print model summary
+(smry_m1.el <- summary(m1.el)) # no main effect of Age
+
+# Fit model without main effect Age
+if(FALSE){
+m2.el <- bam(subj.mV ~ critword 
+              + s(x, y, by=critword)
+              + ti(x, y, Age, d=c(2,1), by=critword)
+              + s(Age, Electrode, bs="fs", m=1),
+              data=datElSOV, discrete = FALSE, method="ML")
+}else{print(load("./Models/m2.el.rda"))}
+
+# Print model summary
+(smry_m2.el <- summary(m2.el)) 
+
+# Compare models
+compareML(m1.el, m2.el, suggest.report = TRUE)
+
+# Check model fit
+gam.check(m2.el)
+```
+
+# Increase k for interaction
+```{r}
+# Fit model with increased k
+if(FALSE){
+m3.el <- bam(subj.mV ~ critword 
+              + s(x, y, by=critword)
+              + ti(x, y, Age, d=c(2,1), k=c(5,5,20), by=critword)
+              + s(Age, Electrode, bs="fs", m=1),
+              data=datElSOV, discrete = FALSE, method="ML")
+}else{print(load("./Models/m3.el.rda"))}
+
+# Print model summary
+(smry_m3.el <- summary(m3.el))
+
+# Check model fit
+gam.check(m3.el) # increasing k does not help, so keep at standard (m2.el)
+```
+
+
+
+# Binary model with separate main effect and interaction effect
+```{r}
+# Fit model without main effect Age
+if(FALSE){
+m2.elBinLit <- bam(subj.mV ~ s(x, y)
+              + s(x, y, by=IsCorrect)
+              + s(x, y, by=IsUnrelated)
+              + ti(x, y, Age, d=c(2,1))
+              + ti(x, y, Age, d=c(2,1), by=IsCorrect)
+              + ti(x, y, Age, d=c(2,1), by=IsUnrelated)
+              + s(Age, Electrode, bs="fs", m=1),
+              data=datElSOV, discrete = FALSE, method="ML")
+}else{print(load("./Models/m2.elBinLit.rda"))}
+
+# Print model summary
+(smry_m2.elBinLit <- summary(m2.elBinLit)) 
+
+# Fit model with correct as reference level
+if(FALSE){
+m2.elBinCor <- bam(subj.mV ~ s(x, y)
+              + s(x, y, by=IsLiteral)
+              + s(x, y, by=IsUnrelated)
+              + ti(x, y, Age, d=c(2,1))
+              + ti(x, y, Age, d=c(2,1), by=IsLiteral)
+              + ti(x, y, Age, d=c(2,1), by=IsUnrelated)
+              + s(Age, Electrode, bs="fs", m=1),
+              data=datElSOV, discrete = FALSE, method="ML")
+}else{print(load("./Models/m2.elBinCor.rda"))}
+
+# Print model summary
+(smry_m2.elBinCor <- summary(m2.elBinCor))
+
+# Report statistics
+(report_m2.elBinLit <- report_stats(m2.elBinLit))
+(report_m2.elBinCor <- report_stats(m2.elBinCor))
+```
+
+# Fit model with ordered factors
+```{r}
+# Reference level literal
+if(FALSE){
+m2.elOrdLit <- bam(subj.mV ~ CritCor + CritUnrel
+              + s(x, y)
+              + s(x, y, by=CritCor)
+              + s(x, y, by=CritUnrel)
+              + ti(x, y, Age, d=c(2,1))
+              + ti(x, y, Age, d=c(2,1), by=CritCor)
+              + ti(x, y, Age, d=c(2,1), by=CritUnrel)
+              + s(Age, Electrode, bs="fs", m=1),
+              data=datElSOV, discrete = FALSE, method="ML")
+}else{print(load("./Models/m2.elOrdLit.rda"))}
+
+# Print model summary
+(smry_m2.elOrdLit <- summary(m2.elOrdLit))
+
+# Reference level correct
+if(FALSE){
+m2.elOrdCor <- bam(subj.mV ~ CritLit + CritUnrel
+              + s(x, y)
+              + s(x, y, by=CritLit)
+              + s(x, y, by=CritUnrel)
+              + ti(x, y, Age, d=c(2,1))
+              + ti(x, y, Age, d=c(2,1), by=CritLit)
+              + ti(x, y, Age, d=c(2,1), by=CritUnrel)
+              + s(Age, Electrode, bs="fs", m=1),
+              data=datElSOV, discrete = FALSE, method="ML")
+}else{print(load("./Models/m2.elOrdCor.rda"))}
+
+# Print model summary
+(smry_m2.elOrdCor <- summary(m2.elOrdCor))
+
+```
+
+
+# Plot distributional differences between conditions averaged over all participants
+```{r, echo=FALSE, fig.height=5, fig.width=15}
+par(mfrow=c(1,3))
+plot_topo(m2.el, view=c('x', 'y'), comp=list(critword=c('unrelated', 'correct')), color='terrain',
+    el.pos=electrodes, fun='plot_diff2', zlim=c(-1,1), main='SOV\nUnrelated vs. correct')
+plot_topo(m2.el, view=c('x', 'y'), comp=list(critword=c('unrelated', 'literal')), color='terrain',
+    el.pos=electrodes, fun='plot_diff2', zlim=c(-1,1), main='SOV\nUnrelated vs. literal')
+plot_topo(m2.el, view=c('x', 'y'), comp=list(critword=c('literal', 'correct')), color='terrain',
+    el.pos=electrodes, fun='plot_diff2', zlim=c(-1,1), main='SOV\nLiteral vs. correct')
+
+```
+
+# Compare distributional differences between conditions across age
+```{r, echo=FALSE, fig.height=35, fig.width=15}
+par(mfcol=c(3,7))
+## Age=20
+plot_topo(m2.el, view=c('x', 'y'), comp=list(critword=c('unrelated', 'correct')), color='terrain',
+    el.pos=electrodes, fun='plot_diff2', zlim=c(-1,1), cond=list(Age=20), main='SOV\nUnrelated vs. correct\nAge=20')
+plot_topo(m2.el, view=c('x', 'y'), comp=list(critword=c('unrelated', 'literal')), color='terrain',
+    el.pos=electrodes, fun='plot_diff2', zlim=c(-1,1), cond=list(Age=20), main='SOV\nUnrelated vs. literal\nAge=20')
+plot_topo(m2.el, view=c('x', 'y'), comp=list(critword=c('literal', 'correct')), color='terrain',
+    el.pos=electrodes, fun='plot_diff2', zlim=c(-1,1), cond=list(Age=20), main='SOV\nLiteral vs. correct\nAge=20')
+
+## Age=30
+plot_topo(m2.el, view=c('x', 'y'), comp=list(critword=c('unrelated', 'correct')), color='terrain',
+    el.pos=electrodes, fun='plot_diff2', zlim=c(-1,1), cond=list(Age=30), main='SOV\nUnrelated vs. correct\nAge=30')
+plot_topo(m2.el, view=c('x', 'y'), comp=list(critword=c('unrelated', 'literal')), color='terrain',
+    el.pos=electrodes, fun='plot_diff2', zlim=c(-1,1), cond=list(Age=30), main='SOV\nUnrelated vs. literal\nAge=30')
+plot_topo(m2.el, view=c('x', 'y'), comp=list(critword=c('literal', 'correct')), color='terrain',
+    el.pos=electrodes, fun='plot_diff2', zlim=c(-1,1), cond=list(Age=30), main='SOV\nLiteral vs. correct\nAge=30')
+
+## Age=40
+plot_topo(m2.el, view=c('x', 'y'), comp=list(critword=c('unrelated', 'correct')), color='terrain',
+    el.pos=electrodes, fun='plot_diff2', zlim=c(-1,1), cond=list(Age=40), main='SOV\nUnrelated vs. correct\nAge=40')
+plot_topo(m2.el, view=c('x', 'y'), comp=list(critword=c('unrelated', 'literal')), color='terrain',
+    el.pos=electrodes, fun='plot_diff2', zlim=c(-1,1), cond=list(Age=40), main='SOV\nUnrelated vs. literal\nAge=40')
+plot_topo(m2.el, view=c('x', 'y'), comp=list(critword=c('literal', 'correct')), color='terrain',
+    el.pos=electrodes, fun='plot_diff2', zlim=c(-1,1), cond=list(Age=40), main='SOV\nLiteral vs. correct\nAge=40')
+
+## Age=50
+plot_topo(m2.el, view=c('x', 'y'), comp=list(critword=c('unrelated', 'correct')), color='terrain',
+    el.pos=electrodes, fun='plot_diff2', zlim=c(-1,1), cond=list(Age=50), main='SOV\nUnrelated vs. correct\nAge=50')
+plot_topo(m2.el, view=c('x', 'y'), comp=list(critword=c('unrelated', 'literal')), color='terrain',
+    el.pos=electrodes, fun='plot_diff2', zlim=c(-1,1), cond=list(Age=50), main='SOV\nUnrelated vs. literal\nAge=50')
+plot_topo(m2.el, view=c('x', 'y'), comp=list(critword=c('literal', 'correct')), color='terrain',
+    el.pos=electrodes, fun='plot_diff2', zlim=c(-1,1), cond=list(Age=50), main='SOV\nLiteral vs. correct\nAge=50')
+
+## Age=60
+plot_topo(m2.el, view=c('x', 'y'), comp=list(critword=c('unrelated', 'correct')), color='terrain',
+    el.pos=electrodes, fun='plot_diff2', zlim=c(-1,1), cond=list(Age=60), main='SOV\nUnrelated vs. correct\nAge=60')
+plot_topo(m2.el, view=c('x', 'y'), comp=list(critword=c('unrelated', 'literal')), color='terrain',
+    el.pos=electrodes, fun='plot_diff2', zlim=c(-1,1), cond=list(Age=60), main='SOV\nUnrelated vs. literal\nAge=60')
+plot_topo(m2.el, view=c('x', 'y'), comp=list(critword=c('literal', 'correct')), color='terrain',
+    el.pos=electrodes, fun='plot_diff2', zlim=c(-1,1), cond=list(Age=60), main='SOV\nLiteral vs. correct\nAge=60')
+
+## Age=70
+plot_topo(m2.el, view=c('x', 'y'), comp=list(critword=c('unrelated', 'correct')), color='terrain',
+    el.pos=electrodes, fun='plot_diff2', zlim=c(-1,1), cond=list(Age=70), main='SOV\nUnrelated vs. correct\nAge=70')
+plot_topo(m2.el, view=c('x', 'y'), comp=list(critword=c('unrelated', 'literal')), color='terrain',
+    el.pos=electrodes, fun='plot_diff2', zlim=c(-1,1), cond=list(Age=70), main='SOV\nUnrelated vs. literal\nAge=70')
+plot_topo(m2.el, view=c('x', 'y'), comp=list(critword=c('literal', 'correct')), color='terrain',
+    el.pos=electrodes, fun='plot_diff2', zlim=c(-1,1), cond=list(Age=70), main='SOV\nLiteral vs. correct\nAge=70')
+
+## Age=80
+plot_topo(m2.el, view=c('x', 'y'), comp=list(critword=c('unrelated', 'correct')), color='terrain',
+    el.pos=electrodes, fun='plot_diff2', zlim=c(-1,1), cond=list(Age=80), main='SOV\nUnrelated vs. correct\nAge=80')
+plot_topo(m2.el, view=c('x', 'y'), comp=list(critword=c('unrelated', 'literal')), color='terrain',
+    el.pos=electrodes, fun='plot_diff2', zlim=c(-1,1), cond=list(Age=80), main='SOV\nUnrelated vs. literal\nAge=80')
+plot_topo(m2.el, view=c('x', 'y'), comp=list(critword=c('literal', 'correct')), color='terrain',
+    el.pos=electrodes, fun='plot_diff2', zlim=c(-1,1), cond=list(Age=80), main='SOV\nLiteral vs. correct\nAge=80')
+```
+
+
+# SVO SENTENCES
+## Fit model for rho value
+```{r, fig.height=5, fig.width=5}
+# Basic model
+m02.el <- bam(subj.mV ~ te(x, y), data=datElSVO)
+plot_topo(m02.el, view=c("x", "y"))
+```
+
+
+# Add electrodes
+```{r}
+electrodes <- datElSVO[,c('x','y','Electrode')]
+electrodes <- as.list( electrodes[!duplicated(electrodes),] )
+
+```
+
+
+
+# Plot differences between critword conditions
+```{r, echo=FALSE, fig.height=5, fig.width=15}
+# Extract electrode positions
+electrodes <- dat2[,c('x','y','Electrode')]
+electrodes <- as.list( electrodes[!duplicated(electrodes),] )
+
+```
+
+# Create binary predictors and ordered factors
+```{r, message=FALSE, fig.height=20, fig.width=10}
+datElSVO$IsCorrect <- ifelse(datElSVO$critword=="correct", 1,0)
+datElSVO$IsLiteral <- ifelse(datElSVO$critword=="literal", 1,0)
+datElSVO$IsUnrelated <- ifelse(datElSVO$critword=="unrelated", 1,0)
+
+# Ordered factors
+datElSVO$CritCor <- as.ordered(datElSVO$critword == 'correct')
+contrasts(datElSVO$CritCor) <- "contr.treatment"
+datElSVO$CritLit <- as.ordered(datElSVO$critword == 'literal')
+contrasts(datElSVO$CritLit) <- "contr.treatment"
+datElSVO$CritUnrel <- as.ordered(datElSVO$critword == 'unrelated')
+contrasts(datElSVO$CritUnrel) <- "contr.treatment"
+
+# Save data for later use in Peregrine
+save(datElSVO, file="./R output/datElSVO.rda", compress="xz")
+
+
+```
+
+
+# Fit model with separate main effect and interaction effect
+```{r}
+# Fit full model
+if(FALSE){
+m12.el <- bam(subj.mV ~ critword 
+              + s(x, y, by=critword)
+              + s(Age, by=critword)
+              + ti(x, y, Age, d=c(2,1), by=critword)
+              + s(Age, Electrode, bs="fs", m=1),
+              data=datElSVO, discrete = FALSE, method="ML")
+}else{print(load("./Models/m12.el.rda"))}
+
+# Print model summary
+(smry_m12.el <- summary(m12.el)) # no main effect of Age
+
+# Fit model without main effect Age
+if(FALSE){
+m22.el <- bam(subj.mV ~ critword 
+              + s(x, y, by=critword)
+              + ti(x, y, Age, d=c(2,1), by=critword)
+              + s(Age, Electrode, bs="fs", m=1),
+              data=datElSVO, discrete = FALSE, method="ML")
+}else{print(load("./Models/m22.el.rda"))}
+
+# Print model summary
+(smry_m22.el <- summary(m22.el)) 
+
+# Compare models
+compareML(m12.el, m22.el, suggest.report = TRUE)
+
+# Check model fit
+gam.check(m22.el)
+```
+
+# Increase k for interaction
+```{r}
+# Fit model with increased k
+if(FALSE){
+m32.el <- bam(subj.mV ~ critword 
+              + s(x, y, by=critword)
+              + ti(x, y, Age, d=c(2,1), k=c(5,5,20), by=critword)
+              + s(Age, Electrode, bs="fs", m=1),
+              data=datElSVO, discrete = TRUE)
+}else{print(load("./Models/m32.el.rda"))}
+
+# Print model summary
+(smry_m32.el <- summary(m32.el))
+
+# Check model fit
+gam.check(m32.el) # increasing k does not help, so keep at standard (m2.el)
+```
+
+# Binary model with separate main effect and interaction effect
+```{r}
+# Fit model without main effect Age
+if(FALSE){
+m22.elBinLit <- bam(subj.mV ~ s(x, y)
+              + s(x, y, by=IsCorrect)
+              + s(x, y, by=IsUnrelated)
+              + ti(x, y, Age, d=c(2,1))
+              + ti(x, y, Age, d=c(2,1), by=IsCorrect)
+              + ti(x, y, Age, d=c(2,1), by=IsUnrelated)
+              + s(Age, Electrode, bs="fs", m=1),
+              data=datElSVO, discrete = FALSE, method="ML")
+}else{print(load("./Models/m22.elBinLit.rda"))}
+
+# Print model summary
+(smry_m22.elBinLit <- summary(m22.elBinLit)) 
+
+# Fit model with correct as reference level
+if(FALSE){
+m22.elBinCor <- bam(subj.mV ~ s(x, y)
+              + s(x, y, by=IsLiteral)
+              + s(x, y, by=IsUnrelated)
+              + ti(x, y, Age, d=c(2,1))
+              + ti(x, y, Age, d=c(2,1), by=IsLiteral)
+              + ti(x, y, Age, d=c(2,1), by=IsUnrelated)
+              + s(Age, Electrode, bs="fs", m=1),
+              data=datElSVO, discrete = FALSE, method="ML")
+}else{print(load("./Models/m22.elBinCor.rda"))}
+
+# Print model summary
+(smry_m22.elBinCor <- summary(m22.elBinCor)) 
+
+# Report statistics
+(report_m22.elBinLit <- report_stats(m22.elBinLit))
+(report_m22.elBinCor <- report_stats(m22.elBinCor))
+```
+
+# Fit model with ordered factors
+```{r}
+# Reference level literal
+if(FALSE){
+m22.elOrdLit <- bam(subj.mV ~ CritCor + CritUnrel
+              + s(x, y)
+              + s(x, y, by=CritCor)
+              + s(x, y, by=CritUnrel)
+              + ti(x, y, Age, d=c(2,1))
+              + ti(x, y, Age, d=c(2,1), by=CritCor)
+              + ti(x, y, Age, d=c(2,1), by=CritUnrel)
+              + s(Age, Electrode, bs="fs", m=1),
+              data=datElSVO, discrete = FALSE, method="ML")
+}else{print(load("./Models/m22.elOrdLit.rda"))}
+
+# Print model summary
+(smry_m22.elOrdLit <- summary(m22.elOrdLit))
+
+# Reference level correct
+if(FALSE){
+m22.elOrdCor <- bam(subj.mV ~ CritLit + CritUnrel
+              + s(x, y)
+              + s(x, y, by=CritLit)
+              + s(x, y, by=CritUnrel)
+              + ti(x, y, Age, d=c(2,1))
+              + ti(x, y, Age, d=c(2,1), by=CritLit)
+              + ti(x, y, Age, d=c(2,1), by=CritUnrel)
+              + s(Age, Electrode, bs="fs", m=1),
+              data=datElSVO, discrete = FALSE, method="ML")
+}else{print(load("./Models/m22.elOrdCor.rda"))}
+
+# Print model summary
+(smry_m22.elOrdCor <- summary(m22.elOrdCor))
+
+```
+
+# Plot distributional differences between conditions averaged over all participants
+```{r, echo=FALSE, fig.height=5, fig.width=15}
+par(mfrow=c(1,3))
+plot_topo(m22.el, view=c('x', 'y'), comp=list(critword=c('unrelated', 'correct')), color='terrain',
+    el.pos=electrodes, fun='plot_diff2', zlim=c(-1,1), main='SVO\nUnrelated vs. correct')
+plot_topo(m22.el, view=c('x', 'y'), comp=list(critword=c('unrelated', 'literal')), color='terrain',
+    el.pos=electrodes, fun='plot_diff2', zlim=c(-1,1), main='SVO\nUnrelated vs. literal')
+plot_topo(m22.el, view=c('x', 'y'), comp=list(critword=c('literal', 'correct')), color='terrain',
+    el.pos=electrodes, fun='plot_diff2', zlim=c(-1,1), main='SVO\nLiteral vs. correct')
+
+```
+
+# Compare distributional differences between conditions across age
+```{r, echo=FALSE, fig.height=35, fig.width=15}
+par(mfcol=c(3,7))
+## Age=20
+plot_topo(m22.el, view=c('x', 'y'), comp=list(critword=c('unrelated', 'correct')), color='terrain',
+    el.pos=electrodes, fun='plot_diff2', zlim=c(-1,1), cond=list(Age=20), main='SVO\nUnrelated vs. correct\nAge=20')
+plot_topo(m22.el, view=c('x', 'y'), comp=list(critword=c('unrelated', 'literal')), color='terrain',
+    el.pos=electrodes, fun='plot_diff2', zlim=c(-1,1), cond=list(Age=20), main='SVO\nUnrelated vs. literal\nAge=20')
+plot_topo(m22.el, view=c('x', 'y'), comp=list(critword=c('literal', 'correct')), color='terrain',
+    el.pos=electrodes, fun='plot_diff2', zlim=c(-1,1), cond=list(Age=20), main='SVO\nLiteral vs. correct\nAge=20')
+
+## Age=30
+plot_topo(m22.el, view=c('x', 'y'), comp=list(critword=c('unrelated', 'correct')), color='terrain',
+    el.pos=electrodes, fun='plot_diff2', zlim=c(-1,1), cond=list(Age=30), main='SVO\nUnrelated vs. correct\nAge=30')
+plot_topo(m22.el, view=c('x', 'y'), comp=list(critword=c('unrelated', 'literal')), color='terrain',
+    el.pos=electrodes, fun='plot_diff2', zlim=c(-1,1), cond=list(Age=30), main='SVO\nUnrelated vs. literal\nAge=30')
+plot_topo(m22.el, view=c('x', 'y'), comp=list(critword=c('literal', 'correct')), color='terrain',
+    el.pos=electrodes, fun='plot_diff2', zlim=c(-1,1), cond=list(Age=30), main='SVO\nLiteral vs. correct\nAge=30')
+
+## Age=40
+plot_topo(m22.el, view=c('x', 'y'), comp=list(critword=c('unrelated', 'correct')), color='terrain',
+    el.pos=electrodes, fun='plot_diff2', zlim=c(-1,1), cond=list(Age=40), main='SVO\nUnrelated vs. correct\nAge=40')
+plot_topo(m22.el, view=c('x', 'y'), comp=list(critword=c('unrelated', 'literal')), color='terrain',
+    el.pos=electrodes, fun='plot_diff2', zlim=c(-1,1), cond=list(Age=40), main='SVO\nUnrelated vs. literal\nAge=40')
+plot_topo(m22.el, view=c('x', 'y'), comp=list(critword=c('literal', 'correct')), color='terrain',
+    el.pos=electrodes, fun='plot_diff2', zlim=c(-1,1), cond=list(Age=40), main='SVO\nLiteral vs. correct\nAge=40')
+
+## Age=50
+plot_topo(m22.el, view=c('x', 'y'), comp=list(critword=c('unrelated', 'correct')), color='terrain',
+    el.pos=electrodes, fun='plot_diff2', zlim=c(-1,1), cond=list(Age=50), main='SVO\nUnrelated vs. correct\nAge=50')
+plot_topo(m22.el, view=c('x', 'y'), comp=list(critword=c('unrelated', 'literal')), color='terrain',
+    el.pos=electrodes, fun='plot_diff2', zlim=c(-1,1), cond=list(Age=50), main='SVO\nUnrelated vs. literal\nAge=50')
+plot_topo(m22.el, view=c('x', 'y'), comp=list(critword=c('literal', 'correct')), color='terrain',
+    el.pos=electrodes, fun='plot_diff2', zlim=c(-1,1), cond=list(Age=50), main='SVO\nLiteral vs. correct\nAge=50')
+
+## Age=60
+plot_topo(m22.el, view=c('x', 'y'), comp=list(critword=c('unrelated', 'correct')), color='terrain',
+    el.pos=electrodes, fun='plot_diff2', zlim=c(-1,1), cond=list(Age=60), main='SVO\nUnrelated vs. correct\nAge=60')
+plot_topo(m22.el, view=c('x', 'y'), comp=list(critword=c('unrelated', 'literal')), color='terrain',
+    el.pos=electrodes, fun='plot_diff2', zlim=c(-1,1), cond=list(Age=60), main='SVO\nUnrelated vs. literal\nAge=60')
+plot_topo(m22.el, view=c('x', 'y'), comp=list(critword=c('literal', 'correct')), color='terrain',
+    el.pos=electrodes, fun='plot_diff2', zlim=c(-1,1), cond=list(Age=60), main='SVO\nLiteral vs. correct\nAge=60')
+
+## Age=70
+plot_topo(m22.el, view=c('x', 'y'), comp=list(critword=c('unrelated', 'correct')), color='terrain',
+    el.pos=electrodes, fun='plot_diff2', zlim=c(-1,1), cond=list(Age=70), main='SVO\nUnrelated vs. correct\nAge=70')
+plot_topo(m22.el, view=c('x', 'y'), comp=list(critword=c('unrelated', 'literal')), color='terrain',
+    el.pos=electrodes, fun='plot_diff2', zlim=c(-1,1), cond=list(Age=70), main='SVO\nUnrelated vs. literal\nAge=70')
+plot_topo(m22.el, view=c('x', 'y'), comp=list(critword=c('literal', 'correct')), color='terrain',
+    el.pos=electrodes, fun='plot_diff2', zlim=c(-1,1), cond=list(Age=70), main='SVO\nLiteral vs. correct\nAge=70')
+
+## Age=80
+plot_topo(m22.el, view=c('x', 'y'), comp=list(critword=c('unrelated', 'correct')), color='terrain',
+    el.pos=electrodes, fun='plot_diff2', zlim=c(-1,1), cond=list(Age=80), main='SVO\nUnrelated vs. correct\nAge=80')
+plot_topo(m22.el, view=c('x', 'y'), comp=list(critword=c('unrelated', 'literal')), color='terrain',
+    el.pos=electrodes, fun='plot_diff2', zlim=c(-1,1), cond=list(Age=80), main='SVO\nUnrelated vs. literal\nAge=80')
+plot_topo(m22.el, view=c('x', 'y'), comp=list(critword=c('literal', 'correct')), color='terrain',
+    el.pos=electrodes, fun='plot_diff2', zlim=c(-1,1), cond=list(Age=80), main='SVO\nLiteral vs. correct\nAge=80')
+```
