@@ -17,4 +17,4 @@ Supplementary materials for paper: La Roi, A., Hendriks, P., & Sprenger, S.A, Co
 
 [3b. Data files topographic analysis](./Preprocessing_persubject_epochICA/)
 
-[4. CSV file with complete set of materials](./materials_complete_paper.csv)
+[4. CSV file with complete set of materials](./WordOrderStudy_Stimuli_EEG.csv)
