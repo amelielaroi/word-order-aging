@@ -1,0 +1,215 @@
+---
+title: "WordOrderStudy_plots"
+author: "Amélie la Roi"
+date: "March 23, 2020"
+output: html_document
+---
+
+Last update: March 23, 2020
+
+## Load required packages
+```{r}
+library(plyr)
+library(itsadug)
+library(mgcv)
+library(ggplot2)
+
+packageVersion('itsadug') # 2.3
+packageVersion('mgcv') # 1.8.31
+```
+
+&nbsp;
+
+## Load models
+```{r}
+print(load("./Models/ROI.m7REML.rda"))
+print(load("./Models/ROI.m72REML.rda"))
+
+```
+
+&nbsp;
+
+# Evaluate differences by plotting
+## Plot time course of critword conditions over all ages
+```{r fig.width=10, fig.height=5}
+# Plot models
+## Plot smooth per critword condition averaged over all participants
+### Plot SOV and SVO sentences next to each other
+par(mfrow=c(1,2))
+plot_smooth(ROI.m7REML, view="Time", plot_all="critword", rm.ranef=TRUE, eegAxis = TRUE, n.grid=100, main="SOV", col=c("green","blue","red"), cex.lab=1.5, cex.axis=1.5, cex.main=2, legend_plot_all = "topright", ylim=c(-1.5,1.5), v=0) 
+
+plot_smooth(ROI.m72REML, view="Time", plot_all="critword", rm.ranef=TRUE, eegAxis = TRUE, n.grid=100, main="SVO", col=c("green","blue","red"), cex.lab=1.5, cex.axis=1.5, cex.main=2, legend_plot_all = "topright", ylim=c(-1.5,1.5), v=0)
+```
+
+&nbsp;
+
+## Plot smooth per critword condition in SOV sentences split out per decade
+```{r fig.width=20, fig.height=10}
+par(mfrow=c(2,4))
+plot_smooth(ROI.m7REML, view="Time", plot_all="critword", rm.ranef=TRUE, eegAxis = TRUE, n.grid=100, main="SOV\nAge = 20", col=c("green","blue","red"), cex.lab=1.5, cex.axis=1.7, cex.main=2, legend_plot_all = list(x=-500,y=-5), cond=list(Age=20), ylim=c(-1.5,1.5)) # legend is plotted outside the plot to make it disappear
+plot_smooth(ROI.m7REML, view="Time", plot_all="critword", rm.ranef=TRUE, eegAxis = TRUE, n.grid=100, main="SOV\nAge = 30", col=c("green","blue","red"), cex.lab=1.5, cex.axis=1.7, cex.main=2, legend_plot_all = list(x=-500,y=-5), cond=list(Age=30), ylim=c(-1.5,1.5))
+plot_smooth(ROI.m7REML, view="Time", plot_all="critword", rm.ranef=TRUE, eegAxis = TRUE, n.grid=100, main="SOV\nAge = 40", col=c("green","blue","red"), cex.lab=1.5, cex.axis=1.7, cex.main=2, legend_plot_all = list(x=-500,y=-5), cond=list(Age=40), ylim=c(-1.5,1.5))
+plot_smooth(ROI.m7REML, view="Time", plot_all="critword", rm.ranef=TRUE, eegAxis = TRUE, n.grid=100, main="SOV\nAge = 50", col=c("green","blue","red"), cex.lab=1.5, cex.axis=1.7, cex.main=2, legend_plot_all = list(x=-500,y=-5), cond=list(Age=50), ylim=c(-1.5,1.5))
+plot_smooth(ROI.m7REML, view="Time", plot_all="critword", rm.ranef=TRUE, eegAxis = TRUE, n.grid=100, main="SOV\nAge = 60", col=c("green","blue","red"), cex.lab=1.5, cex.axis=1.7, cex.main=2, legend_plot_all = list(x=-500,y=-5), cond=list(Age=60), ylim=c(-1.5,1.5))
+plot_smooth(ROI.m7REML, view="Time", plot_all="critword", rm.ranef=TRUE, eegAxis = TRUE, n.grid=100, main="SOV\nAge = 70", col=c("green","blue","red"), cex.lab=1.5, cex.axis=1.7, cex.main=2, legend_plot_all = list(x=-500,y=-5), cond=list(Age=70), ylim=c(-1.5,1.5))
+plot_smooth(ROI.m7REML, view="Time", plot_all="critword", rm.ranef=TRUE, eegAxis = TRUE, n.grid=100, main="SOV\nAge = 80", col=c("green","blue","red"), cex.lab=1.5, cex.axis=1.7, cex.main=2, legend_plot_all=list(x=350,y=1), cond=list(Age=80), ylim=c(-1.5,1.5))
+```
+
+&nbsp;
+
+## Plot smooth per critword condition in SVO sentences split out per decade
+```{r fig.width=20, fig.height=10}
+par(mfrow=c(2,4))
+plot_smooth(ROI.m72REML, view="Time", plot_all="critword", rm.ranef=TRUE, eegAxis = TRUE, n.grid=100, main="SVO\nAge = 20", col=c("green","blue","red"), cex.lab=1.5, cex.axis=1.7, cex.main=2, legend_plot_all = list(x=-500,y=-5), cond=list(Age=20), ylim=c(-1.5,1.5))
+plot_smooth(ROI.m72REML, view="Time", plot_all="critword", rm.ranef=TRUE, eegAxis = TRUE, n.grid=100, main="SVO\nAge = 30", col=c("green","blue","red"), cex.lab=1.5, cex.axis=1.7, cex.main=2, legend_plot_all = list(x=-500,y=-5), cond=list(Age=30), ylim=c(-1.5,1.5))
+plot_smooth(ROI.m72REML, view="Time", plot_all="critword", rm.ranef=TRUE, eegAxis = TRUE, n.grid=100, main="SVO\nAge = 40", col=c("green","blue","red"), cex.lab=1.5, cex.axis=1.7, cex.main=2, legend_plot_all = list(x=-500,y=-5), cond=list(Age=40), ylim=c(-1.5,1.5))
+plot_smooth(ROI.m72REML, view="Time", plot_all="critword", rm.ranef=TRUE, eegAxis = TRUE, n.grid=100, main="SVO\nAge = 50", col=c("green","blue","red"), cex.lab=1.5, cex.axis=1.7, cex.main=2, legend_plot_all = list(x=-500,y=-5), cond=list(Age=50), ylim=c(-1.5,1.5))
+plot_smooth(ROI.m72REML, view="Time", plot_all="critword", rm.ranef=TRUE, eegAxis = TRUE, n.grid=100, main="SVO\nAge = 60", col=c("green","blue","red"), cex.lab=1.5, cex.axis=1.7, cex.main=2, legend_plot_all = list(x=-500,y=-5), cond=list(Age=60), ylim=c(-1.5,1.5))
+plot_smooth(ROI.m72REML, view="Time", plot_all="critword", rm.ranef=TRUE, eegAxis = TRUE, n.grid=100, main="SVO\nAge = 70", col=c("green","blue","red"), cex.lab=1.5, cex.axis=1.7, cex.main=2, legend_plot_all = list(x=-500,y=-5), cond=list(Age=70), ylim=c(-1.5,1.5))
+plot_smooth(ROI.m72REML, view="Time", plot_all="critword", rm.ranef=TRUE, eegAxis = TRUE, n.grid=100, main="SVO\nAge = 80", col=c("green","blue","red"), cex.lab=1.5, cex.axis=1.7, cex.main=2, legend_plot_all=list(x=250,y=0.75), cond=list(Age=80), ylim=c(-1.5,1.5))
+```
+
+&nbsp;
+
+## Plot difference between critword conditions over all ages
+### In SOV and SVO sentences
+```{r fig.width=15, fig.height=10}
+## Plot one-dimensional difference smooths
+par(mfrow=c(2,3))
+
+# SOV sentences
+plot_diff(ROI.m7REML, view="Time", comp=list(critword=c("unrelated", "correct")), rm.ranef=TRUE, eegAxis = TRUE, v=0, n.grid=100, main="SOV\nUnrelated vs. correct", cex.lab=2, cex.axis=2, cex.main=2, ylim=c(-1.5,1.5))
+plot_diff(ROI.m7REML, view="Time", comp=list(critword=c("unrelated", "literal")), rm.ranef=TRUE, eegAxis = TRUE, v=0, n.grid=100, main="SOV\nUnrelated vs. literal", cex.lab=2, cex.axis=2, cex.main=2, ylim=c(-1.5,1.5))
+plot_diff(ROI.m7REML, view="Time", comp=list(critword=c("literal","correct")), rm.ranef=TRUE, eegAxis = TRUE, v=0, n.grid=100, main="SOV\nLiteral vs. correct", cex.lab=2, cex.axis=2, cex.main=2, ylim=c(-1.5,1.5))
+
+# SVO sentences
+plot_diff(ROI.m72REML, view="Time", comp=list(critword=c("unrelated", "correct")), rm.ranef=TRUE, eegAxis = TRUE, v=0, n.grid=100, main="SVO\nUnrelated vs. correct", cex.lab=2, cex.axis=2, cex.main=2, ylim=c(-1.5,1.5))
+plot_diff(ROI.m72REML, view="Time", comp=list(critword=c("unrelated", "literal")), rm.ranef=TRUE, eegAxis = TRUE, v=0, n.grid=100, main="SVO\nUnrelated vs. literal", cex.lab=2, cex.axis=2, cex.main=2, ylim=c(-1.5,1.5))
+plot_diff(ROI.m72REML, view="Time", comp=list(critword=c("literal","correct")), rm.ranef=TRUE, eegAxis = TRUE, v=0, n.grid=100, main="SVO\nLiteral vs. correct", cex.lab=2, cex.axis=2, cex.main=2, ylim=c(-1.5,1.5))
+
+```
+
+&nbsp;
+
+# Plot differences between conditions in SOV sentences for different ages to:
+# 1) Find out the time point at which differences between conditions differ from each other over age
+# 2) Get insight in latencies of significant differences between conditions at different ages
+```{r fig.width=20, fig.height=10}
+
+# Unrelated vs. correct (significant till 56)
+par(mfrow=c(2,4))
+plot_diff(ROI.m7REML, view="Time", comp=list(critword=c("unrelated", "correct")), cond=list(Age=20), rm.ranef=TRUE, eegAxis = TRUE, v=0, n.grid=100, main="Unrelated vs. correct\nAge=20", cex.lab=2.5, cex.axis=2.5, cex.main=2.5, ylim=c(-1.5,1.5))
+plot_diff(ROI.m7REML, view="Time", comp=list(critword=c("unrelated", "correct")), cond=list(Age=30), rm.ranef=TRUE, eegAxis = TRUE, v=0, n.grid=100, main="Unrelated vs. correct\nAge=30", cex.lab=2.5, cex.axis=2.5, cex.main=2.5, ylim=c(-1.5,1.5)) 
+plot_diff(ROI.m7REML, view="Time", comp=list(critword=c("unrelated", "correct")), cond=list(Age=40), rm.ranef=TRUE, eegAxis = TRUE, v=0, n.grid=100, main="Unrelated vs. correct\nAge=40", cex.lab=2.5, cex.axis=2.5, cex.main=2.5, ylim=c(-1.5,1.5)) 
+plot_diff(ROI.m7REML, view="Time", comp=list(critword=c("unrelated", "correct")), cond=list(Age=50), rm.ranef=TRUE, eegAxis = TRUE, v=0, n.grid=100, main="Unrelated vs. correct\nAge=50", cex.lab=2.5, cex.axis=2.5, cex.main=2.5, ylim=c(-1.5,1.5)) 
+plot_diff(ROI.m7REML, view="Time", comp=list(critword=c("unrelated", "correct")), cond=list(Age=60), rm.ranef=TRUE, eegAxis = TRUE, v=0, n.grid=100, main="Unrelated vs. correct\nAge=60", cex.lab=2.5, cex.axis=2.5, cex.main=2.5, ylim=c(-1.5,1.5)) 
+plot_diff(ROI.m7REML, view="Time", comp=list(critword=c("unrelated", "correct")), cond=list(Age=70), rm.ranef=TRUE, eegAxis = TRUE, v=0, n.grid=100, main="Unrelated vs. correct\nAge=70", cex.lab=2.5, cex.axis=2.5, cex.main=2.5, ylim=c(-1.5,1.5)) 
+plot_diff(ROI.m7REML, view="Time", comp=list(critword=c("unrelated", "correct")), cond=list(Age=80), rm.ranef=TRUE, eegAxis = TRUE, v=0, n.grid=100, main="Unrelated vs. correct\nAge=80", cex.lab=2.5, cex.axis=2.5, cex.main=2.5, ylim=c(-1.5,1.5)) 
+
+# Unrelated vs. literal (significant up to age 30)
+par(mfrow=c(2,4))
+plot_diff(ROI.m7REML, view="Time", comp=list(critword=c("unrelated", "literal")), cond=list(Age=20), rm.ranef=TRUE, eegAxis = TRUE, v=0, n.grid=100, main="Unrelated vs. literal\nAge=20", cex.lab=2.5, cex.axis=2.5, cex.main=2.5, ylim=c(-1.5,1.5))
+plot_diff(ROI.m7REML, view="Time", comp=list(critword=c("unrelated", "literal")), cond=list(Age=30), rm.ranef=TRUE, eegAxis = TRUE, v=0, n.grid=100, main="Unrelated vs. literal\nAge=30", cex.lab=2.5, cex.axis=2.5, cex.main=2.5, ylim=c(-1.5,1.5))
+plot_diff(ROI.m7REML, view="Time", comp=list(critword=c("unrelated", "literal")), cond=list(Age=40), rm.ranef=TRUE, eegAxis = TRUE, v=0, n.grid=100, main="Unrelated vs. literal\nAge=40", cex.lab=2.5, cex.axis=2.5, cex.main=2.5, ylim=c(-1.5,1.5))
+plot_diff(ROI.m7REML, view="Time", comp=list(critword=c("unrelated", "literal")), cond=list(Age=50), rm.ranef=TRUE, eegAxis = TRUE, v=0, n.grid=100, main="Unrelated vs. literal\nAge=50", cex.lab=2.5, cex.axis=2.5, cex.main=2.5, ylim=c(-1.5,1.5))
+plot_diff(ROI.m7REML, view="Time", comp=list(critword=c("unrelated", "literal")), cond=list(Age=60), rm.ranef=TRUE, eegAxis = TRUE, v=0, n.grid=100, main="Unrelated vs. literal\nAge=60", cex.lab=2.5, cex.axis=2.5, cex.main=2.5, ylim=c(-1.5,1.5))
+plot_diff(ROI.m7REML, view="Time", comp=list(critword=c("unrelated", "literal")), cond=list(Age=70), rm.ranef=TRUE, eegAxis = TRUE, v=0, n.grid=100, main="Unrelated vs. literal\nAge=70", cex.lab=2.5, cex.axis=2.5, cex.main=2.5, ylim=c(-1.5,1.5))
+plot_diff(ROI.m7REML, view="Time", comp=list(critword=c("unrelated", "literal")), cond=list(Age=80), rm.ranef=TRUE, eegAxis = TRUE, v=0, n.grid=100, main="Unrelated vs. literal\nAge=80", cex.lab=2.5, cex.axis=2.5, cex.main=2.5, ylim=c(-1.5,1.5))
+
+# Literal vs. correct (no significant differences)
+par(mfrow=c(2,4))
+plot_diff(ROI.m7REML, view="Time", comp=list(critword=c("literal","correct")), cond=list(Age=20), rm.ranef=TRUE, eegAxis = TRUE, v=0, n.grid=100, main="Literal vs. correct\nAge=20", cex.lab=2.5, cex.axis=2.5, cex.main=2.5, ylim=c(-1.5,1.5))
+plot_diff(ROI.m7REML, view="Time", comp=list(critword=c("literal","correct")), cond=list(Age=30), rm.ranef=TRUE, eegAxis = TRUE, v=0, n.grid=100, main="Literal vs. correct\nAge=30", cex.lab=2.5, cex.axis=2.5, cex.main=2.5, ylim=c(-1.5,1.5))
+plot_diff(ROI.m7REML, view="Time", comp=list(critword=c("literal","correct")), cond=list(Age=40), rm.ranef=TRUE, eegAxis = TRUE, v=0, n.grid=100, main="Literal vs. correct\nAge=40", cex.lab=2.5, cex.axis=2.5, cex.main=2.5, ylim=c(-1.5,1.5))
+plot_diff(ROI.m7REML, view="Time", comp=list(critword=c("literal","correct")), cond=list(Age=50), rm.ranef=TRUE, eegAxis = TRUE, v=0, n.grid=100, main="Literal vs. correct\nAge=50", cex.lab=2.5, cex.axis=2.5, cex.main=2.5, ylim=c(-1.5,1.5))
+plot_diff(ROI.m7REML, view="Time", comp=list(critword=c("literal","correct")), cond=list(Age=60), rm.ranef=TRUE, eegAxis = TRUE, v=0, n.grid=100, main="Literal vs. correct\nAge=60", cex.lab=2.5, cex.axis=2.5, cex.main=2.5, ylim=c(-1.5,1.5))
+plot_diff(ROI.m7REML, view="Time", comp=list(critword=c("literal","correct")), cond=list(Age=70), rm.ranef=TRUE, eegAxis = TRUE, v=0, n.grid=100, main="Literal vs. correct\nAge=70", cex.lab=2.5, cex.axis=2.5, cex.main=2.5, ylim=c(-1.5,1.5))
+plot_diff(ROI.m7REML, view="Time", comp=list(critword=c("literal","correct")), cond=list(Age=80), rm.ranef=TRUE, eegAxis = TRUE, v=0, n.grid=100, main="Literal vs. correct\nAge=80", cex.lab=2.5, cex.axis=2.5, cex.main=2.5, ylim=c(-1.5,1.5))
+```
+
+&nbsp;
+
+# Plot differences between conditions in SVO sentences for different ages to:
+# 1) Find out the time point at which differences between conditions differ from each other over age
+# 2) Get insight in latencies of significant differences between conditions at different ages
+```{r fig.width=20, fig.height=10}
+
+# Unrelated vs. correct (significant till 63)
+par(mfrow=c(2,4))
+plot_diff(ROI.m72REML, view="Time", comp=list(critword=c("unrelated", "correct")), cond=list(Age=20), rm.ranef=TRUE, eegAxis = TRUE, v=0, n.grid=100, main="Unrelated vs. correct\nAge=20", cex.lab=2.5, cex.axis=2.5, cex.main=2.5, ylim=c(-1.5,1.5))
+plot_diff(ROI.m72REML, view="Time", comp=list(critword=c("unrelated", "correct")), cond=list(Age=30), rm.ranef=TRUE, eegAxis = TRUE, v=0, n.grid=100, main="Unrelated vs. correct\nAge=30", cex.lab=2.5, cex.axis=2.5, cex.main=2.5, ylim=c(-1.5,1.5)) 
+plot_diff(ROI.m72REML, view="Time", comp=list(critword=c("unrelated", "correct")), cond=list(Age=40), rm.ranef=TRUE, eegAxis = TRUE, v=0, n.grid=100, main="Unrelated vs. correct\nAge=40", cex.lab=2.5, cex.axis=2.5, cex.main=2.5, ylim=c(-1.5,1.5)) 
+plot_diff(ROI.m72REML, view="Time", comp=list(critword=c("unrelated", "correct")), cond=list(Age=50), rm.ranef=TRUE, eegAxis = TRUE, v=0, n.grid=100, main="Unrelated vs. correct\nAge=50", cex.lab=2.5, cex.axis=2.5, cex.main=2.5, ylim=c(-1.5,1.5)) 
+plot_diff(ROI.m72REML, view="Time", comp=list(critword=c("unrelated", "correct")), cond=list(Age=60), rm.ranef=TRUE, eegAxis = TRUE, v=0, n.grid=100, main="Unrelated vs. correct\nAge=60", cex.lab=2.5, cex.axis=2.5, cex.main=2.5, ylim=c(-1.5,1.5)) 
+plot_diff(ROI.m72REML, view="Time", comp=list(critword=c("unrelated", "correct")), cond=list(Age=70), rm.ranef=TRUE, eegAxis = TRUE, v=0, n.grid=100, main="Unrelated vs. correct\nAge=70", cex.lab=2.5, cex.axis=2.5, cex.main=2.5, ylim=c(-1.5,1.5)) 
+plot_diff(ROI.m72REML, view="Time", comp=list(critword=c("unrelated", "correct")), cond=list(Age=80), rm.ranef=TRUE, eegAxis = TRUE, v=0, n.grid=100, main="Unrelated vs. correct\nAge=80", cex.lab=2.5, cex.axis=2.5, cex.main=2.5, ylim=c(-1.5,1.5)) 
+
+# Unrelated vs. literal (significant between 38-57)
+par(mfrow=c(2,4))
+plot_diff(ROI.m72REML, view="Time", comp=list(critword=c("unrelated", "literal")), cond=list(Age=20), rm.ranef=TRUE, eegAxis = TRUE, v=0, n.grid=100, main="Unrelated vs. literal\nAge=20", cex.lab=2.5, cex.axis=2.5, cex.main=2.5, ylim=c(-1.5,1.5))
+plot_diff(ROI.m72REML, view="Time", comp=list(critword=c("unrelated", "literal")), cond=list(Age=30), rm.ranef=TRUE, eegAxis = TRUE, v=0, n.grid=100, main="Unrelated vs. literal\nAge=30", cex.lab=2.5, cex.axis=2.5, cex.main=2.5, ylim=c(-1.5,1.5))
+plot_diff(ROI.m72REML, view="Time", comp=list(critword=c("unrelated", "literal")), cond=list(Age=40), rm.ranef=TRUE, eegAxis = TRUE, v=0, n.grid=100, main="Unrelated vs. literal\nAge=40", cex.lab=2.5, cex.axis=2.5, cex.main=2.5, ylim=c(-1.5,1.5))
+plot_diff(ROI.m72REML, view="Time", comp=list(critword=c("unrelated", "literal")), cond=list(Age=50), rm.ranef=TRUE, eegAxis = TRUE, v=0, n.grid=100, main="Unrelated vs. literal\nAge=50", cex.lab=2.5, cex.axis=2.5, cex.main=2.5, ylim=c(-1.5,1.5))
+plot_diff(ROI.m72REML, view="Time", comp=list(critword=c("unrelated", "literal")), cond=list(Age=60), rm.ranef=TRUE, eegAxis = TRUE, v=0, n.grid=100, main="Unrelated vs. literal\nAge=60", cex.lab=2.5, cex.axis=2.5, cex.main=2.5, ylim=c(-1.5,1.5))
+plot_diff(ROI.m72REML, view="Time", comp=list(critword=c("unrelated", "literal")), cond=list(Age=70), rm.ranef=TRUE, eegAxis = TRUE, v=0, n.grid=100, main="Unrelated vs. literal\nAge=70", cex.lab=2.5, cex.axis=2.5, cex.main=2.5, ylim=c(-1.5,1.5))
+plot_diff(ROI.m72REML, view="Time", comp=list(critword=c("unrelated", "literal")), cond=list(Age=80), rm.ranef=TRUE, eegAxis = TRUE, v=0, n.grid=100, main="Unrelated vs. literal\nAge=80", cex.lab=2.5, cex.axis=2.5, cex.main=2.5, ylim=c(-1.5,1.5))
+
+# Literal vs. correct (significant till 50 )
+par(mfrow=c(2,4))
+plot_diff(ROI.m72REML, view="Time", comp=list(critword=c("literal","correct")), cond=list(Age=20), rm.ranef=TRUE, eegAxis = TRUE, v=0, n.grid=100, main="Literal vs. correct\nAge=20", cex.lab=2.5, cex.axis=2.5, cex.main=2.5, ylim=c(-1.5,1.5))
+plot_diff(ROI.m72REML, view="Time", comp=list(critword=c("literal","correct")), cond=list(Age=30), rm.ranef=TRUE, eegAxis = TRUE, v=0, n.grid=100, main="Literal vs. correct\nAge=30", cex.lab=2.5, cex.axis=2.5, cex.main=2.5, ylim=c(-1.5,1.5))
+plot_diff(ROI.m72REML, view="Time", comp=list(critword=c("literal","correct")), cond=list(Age=40), rm.ranef=TRUE, eegAxis = TRUE, v=0, n.grid=100, main="Literal vs. correct\nAge=40", cex.lab=2.5, cex.axis=2.5, cex.main=2.5, ylim=c(-1.5,1.5))
+plot_diff(ROI.m72REML, view="Time", comp=list(critword=c("literal","correct")), cond=list(Age=50), rm.ranef=TRUE, eegAxis = TRUE, v=0, n.grid=100, main="Literal vs. correct\nAge=50", cex.lab=2.5, cex.axis=2.5, cex.main=2.5, ylim=c(-1.5,1.5))
+plot_diff(ROI.m72REML, view="Time", comp=list(critword=c("literal","correct")), cond=list(Age=60), rm.ranef=TRUE, eegAxis = TRUE, v=0, n.grid=100, main="Literal vs. correct\nAge=60", cex.lab=2.5, cex.axis=2.5, cex.main=2.5, ylim=c(-1.5,1.5))
+plot_diff(ROI.m72REML, view="Time", comp=list(critword=c("literal","correct")), cond=list(Age=70), rm.ranef=TRUE, eegAxis = TRUE, v=0, n.grid=100, main="Literal vs. correct\nAge=70", cex.lab=2.5, cex.axis=2.5, cex.main=2.5, ylim=c(-1.5,1.5))
+plot_diff(ROI.m72REML, view="Time", comp=list(critword=c("literal","correct")), cond=list(Age=80), rm.ranef=TRUE, eegAxis = TRUE, v=0, n.grid=100, main="Literal vs. correct\nAge=80", cex.lab=2.5, cex.axis=2.5, cex.main=2.5, ylim=c(-1.5,1.5))
+
+
+```
+
+&nbsp;
+
+## Plot differences between critword conditions for interactions between Time and Age 
+### For SOV and SVO sentences
+```{r fig.width=15, fig.height=10}
+# Plot difference surfaces SOV sentences
+par(mfrow=c(2,3))
+## Unrelated vs. correct
+plot_diff2(ROI.m7REML, view=c("Time", "Age"), 
+    comp=list(critword=c("unrelated", "correct")), 
+    rm.ranef=TRUE, main="SOV\nUnrelated vs. correct",
+    color="terrain", zlim=c(-1.25,1), cex.lab=1.5, cex.axis=1.5, cex.main=2) 
+
+## Unrelated vs. literal
+plot_diff2(ROI.m7REML, view=c("Time", "Age"), 
+    comp=list(critword=c("unrelated", "literal")), 
+    rm.ranef=TRUE, main="SOV\nUnrelated vs. literal",
+    color="terrain", zlim=c(-1.25,1), cex.lab=1.5, cex.axis=1.5, cex.main=2) 
+
+## Literal vs. correct
+plot_diff2(ROI.m7REML, view=c("Time", "Age"), 
+    comp=list(critword=c("literal","correct")), 
+    rm.ranef=TRUE, main="SOV\nLiteral vs. correct",
+    color="terrain", zlim=c(-1.25,1), cex.lab=1.5, cex.axis=1.5, cex.main=2) 
+
+# Add difference surfaces Verb-second sentences
+## Unrelated vs. correct
+plot_diff2(ROI.m72REML, view=c("Time", "Age"), 
+    comp=list(critword=c("unrelated", "correct")), 
+    rm.ranef=TRUE, main="SVO\nUnrelated vs. correct", 
+    color="terrain", zlim=c(-1.25,1), cex.lab=1.5, cex.axis=1.5, cex.main=2) 
+
+## Unrelated vs. literal
+plot_diff2(ROI.m72REML, view=c("Time", "Age"), 
+    comp=list(critword=c("unrelated", "literal")), 
+    rm.ranef=TRUE, main="SVO\nUnrelated vs. literal", 
+    color="terrain", zlim=c(-1.25,1), cex.lab=1.5, cex.axis=1.5, cex.main=2) 
+
+## Literal vs. correct
+plot_diff2(ROI.m72REML, view=c("Time", "Age"), 
+    comp=list(critword=c("literal","correct")), 
+    rm.ranef=TRUE, main="SVO\nLiteral vs. correct", 
+    color="terrain", zlim=c(-1.25,1), cex.lab=1.5, cex.axis=1.5, cex.main=2)
+
+```
+
