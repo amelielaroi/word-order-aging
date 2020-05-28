@@ -19,4 +19,4 @@ Last update: March 23, 2020
 
 [3b. Data files topographic analysis](./Preprocessing_persubject_epochICA/)
 
-[4. CSV file with complete set of materials](./WordOrderStudy_Stimuli_EEG.csv)
+[4. CSV file with complete set of materials used in the EEG experiment](./WordOrderStudy_Stimuli_EEG.csv)
