@@ -26,3 +26,5 @@ Last update: May 28, 2020
 [4c. CSV file with frequency measures of materials used in the EEG experiment](./WordOrderStudy_Stimuli_frequencies.csv)
 
 [4d. CSV file with LSA scores of target words used in the EEG experiment](./WordOrderStudy_Stimuli_LSA_scores.csv)
+
+[5. Boxplot of literality ratings](./WordOrderStudy_litboxplot.png)
