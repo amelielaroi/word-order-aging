@@ -1,0 +1,268 @@
+---
+title: "WordOrderStudy_GAMManalysis_SVO"
+author: "Amélie la Roi"
+date: "March 21, 2020"
+output: html_document
+---
+
+Last update: June 8, 2020
+
+## Load required packages
+```{r}
+library(plyr)
+library(itsadug)
+library(mgcv)
+library(ggplot2)
+
+packageVersion('itsadug') # 2.3
+packageVersion('mgcv') # 1.8.31
+```
+
+&nbsp;
+
+## Run GAMMs on mean voltage of ROI
+### Compute subject means to include subject as random effect
+```{r results='hide'}
+datadir <- "./Preprocessing_persubject_epochICA/"
+allfiles <- dir(path=datadir)
+dat <- c()
+
+
+# Load and save data from all participants for one electrode
+for(i in allfiles ){
+  print(i)
+  load(sprintf("%s/%s", datadir, i))
+  
+  subdat <- droplevels(finalO[finalO$Electrode %in% c("C3","C1","Cz","C2","C4","CP3","CPz","CP4","Pz","P1","P2","P3","P4"),])
+  dat <- rbind(dat, subdat)
+  subdat <- NULL
+}
+
+# Compute mean amplitude change over time per subject and condition
+subjectROI <- ddply(dat, c("Subject", "Age", "order", "critword", "Time"), summarise,
+             subj.mV.median = median(mV, na.rm=TRUE),
+             subj.mV = mean(mV, na.rm=TRUE),
+             subj.mV = mean(mV, na.rm=TRUE),
+             subj.n = length(mV[!is.na(mV)]))
+
+```
+
+&nbsp;
+
+# GAMM analysis
+## Prepare variables
+```{r prepare variables}
+# Make sure variables are factors
+subjectROI$Subject <- as.factor(subjectROI$Subject)
+subjectROI$order <- as.factor(subjectROI$order)
+subjectROI$critword <- as.factor(subjectROI$critword)
+subjectROI$Event <- interaction(subjectROI$Subject, subjectROI$order, subjectROI$critword, drop=TRUE)
+
+# Determine starting point for each time series
+subjectROI <- start_event(subjectROI)
+
+# Check number of data points to select gam (< 10000) or bam (> 10000)
+dim(subjectROI) # more than 10000 data points, so use bam
+
+# CREATE ORDERED FACTORS
+## For critword conditions
+subjectROI$CritCor <- as.ordered(subjectROI$critword == 'correct')
+contrasts(subjectROI$CritCor) <- "contr.treatment"
+subjectROI$CritLit <- as.ordered(subjectROI$critword == 'literal')
+contrasts(subjectROI$CritLit) <- "contr.treatment"
+subjectROI$CritUnrel <- as.ordered(subjectROI$critword == 'unrelated')
+contrasts(subjectROI$CritUnrel) <- "contr.treatment"
+
+# Create dataframe per sentence order
+subjectROI_final <- droplevels(subjectROI[subjectROI$order == 'verb-final',])
+subjectROI_first <- droplevels(subjectROI[subjectROI$order == 'verb-first',])
+
+# Select data from -100 - 600 ms time window
+subjectROI_finalE <- droplevels(subjectROI_final[subjectROI_final$Time >= -100 & subjectROI_final$Time < 600,])
+subjectROI_firstE <- droplevels(subjectROI_first[subjectROI_first$Time >= -100 & subjectROI_first$Time < 600,])
+
+# Redefine start_event
+subjectROI_finalE <- start_event(subjectROI_finalE)
+subjectROI_firstE <- start_event(subjectROI_firstE)
+
+# Remove dataframes that will not be used for model fitting
+rm(dat, subjectROI, subjectROI_first, subjectROI_final)
+
+```
+
+&nbsp;
+
+## Model comparison with method="ML"
+### *SVO SENTENCES*
+```{r}
+## Fit FULL model with method="ML"
+if(FALSE){
+ROI.m62REML <- bam( subj.mV ~ critword 
+            + s(Time, k=40, by=critword) 
+            + s(Age, by=critword) 
+            + ti(Time, Age, k=c(40,5), by=critword)
+           + s(Time, Event, bs="fs", m=1, k=20), 
+           data=subjectROI_firstE, discrete = FALSE, method="ML",
+           AR.start=subjectROI_firstE$start.event, rho=myrho12.ROIE)
+}else{print(load("./Models/ROI.m62REML.rda"))}
+
+# Model summary
+summary(ROI.m62REML) # smooth over Age is not significantly different from zero
+                                                          
+```
+
+&nbsp;
+
+### Check contribution of smooth over Age
+```{r}
+## Fit model without smooth over Age (with method="ML")
+if(FALSE){
+ROI.m72REML <- bam( subj.mV ~ critword 
+            + s(Time, k=40, by=critword) 
+            + ti(Time, Age, k=c(40,5), by=critword)
+           + s(Time, Event, bs="fs", m=1, k=20), # Event = interaction between subject and critword
+           data=subjectROI_firstE, discrete = FALSE, method="ML",
+           AR.start=subjectROI_firstE$start.event, rho=myrho12.ROIE)
+}else{print(load("./Models/ROI.m72REML.rda"))}
+
+# Model summary
+summary(ROI.m72REML, re.test=FALSE)
+
+# Compare models
+compareML(ROI.m62REML, ROI.m72REML, suggest.report = TRUE)
+
+# Remove model to free workspace
+rm(ROI.m62REML)
+
+```
+
+&nbsp;
+
+### Test effect of Operation Span score on SVO sentences
+```{r}
+# Load operation span data
+print(load("./Cognitive scores/OS.PCU.rda"))
+
+# Merge OS scores with EEG data
+subjectROI_firstE.OS.PCU <- merge(OS.PCU2, subjectROI_firstE, by= "Subject")
+
+# Fit model including smooth for operation span score
+if(FALSE){
+ROI.m82REML <- bam( subj.mV ~ critword 
+            + s(Time, k=40, by=critword) 
+            + ti(Time, Age, k=c(40,5), by=critword)
+            + s(subj.OS)
+            + s(Time, Event, bs="fs", m=1, k=20), 
+           data=subjectROI_firstE.OS.PCU, discrete = FALSE, method="ML",
+           AR.start=subjectROI_firstE.OS.PCU$start.event, rho=myrho12.ROIE)
+}else{print(load("./Models/ROI.m82REML.rda"))}
+
+# Model summary
+summary(ROI.m82REML, re.test=FALSE)
+
+# Compare models
+compareML(ROI.m72REML, ROI.m82REML, suggest.report = TRUE) # operation span score doesn't improve model fit
+
+# Print statistics to report
+report_stats(ROI.m82REML) # operation span score is not a significant predictor
+
+# Remove model to free workspace
+rm(ROI.m82REML, OS.PCU2)
+```
+
+&nbsp;
+
+### Test effect of Numerical Stroop score on SVO sentences
+```{r}
+# Load numerical stroop data
+print(load("./Cognitive scores/subjectStroop.rda"))
+
+# Merge OS scores with EEG data
+subjectROI_firstE.NS <- merge(subjectStroop, subjectROI_firstE, by= "Subject")
+
+# Fit model with numerical stroop data
+if(FALSE){
+ROI.m92REML <- bam( subj.mV ~ critword 
+            + s(Time, k=40, by=critword)
+            + s(Age, by=critword)
+            + ti(Time, Age, k=c(40,5), by=critword)
+            + s(Stroop)
+            + s(Time, Event, bs="fs", m=1, k=20), 
+           data=subjectROI_firstE.NS, discrete = FALSE, method="ML",
+           AR.start=subjectROI_firstE.NS$start.event, rho=myrho12.ROIE)
+}else{print(load("./Models/ROI.m92REML.rda"))}
+
+# Model summary
+summary(ROI.m92REML, re.test=FALSE)
+
+# Compare models
+compareML(ROI.m72REML, ROI.m92REML, suggest.report = TRUE) # numerical stroop score doesn't improve model fit
+
+# Print statistics to report
+report_stats(ROI.m92REML) # numerical stroop score is a significant predictor
+
+# Remove models to free workspace
+rm(ROI.m72REML, ROI.m92REML)
+```
+
+&nbsp;
+
+## Check differences between critword conditions 
+
+In a model with binary predictors, the binary term can only be included once. If the binary terms occurs multiple times, the model doesn't know in which term the intercept difference should be included. In our design, we need to fit the same difference curves (modeling the differences between the critical word conditions) for the smooth over Time, the smooth over Age, and the interaction smooth over Time and Age. To be able to do this, we need to use ordered factors. With ordered factors, the intercept difference and nonlinear difference are captured in separate smooths. So in addition to giving us the possibility to fit the differences between critical word conditions in multiple smooths, ordered factors also provide insight in whether potential differences between critical word conditions arise from intercept differences or nonlinear differences.
+
+### Fit ordered factor models
+```{r}
+# Correct reference
+if(FALSE){
+ROI.m72REML.ordCor <- bam( subj.mV ~ CritLit + CritUnrel
+              # reference curve         
+              + s(Time, k=40) 
+              # difference curves
+              + s(Time, by=CritLit) + s(Time, by=CritUnrel) 
+              # reference surface
+              + ti(Time, Age)
+              # difference surface
+              + ti(Time, Age, k=c(40,5), by=CritLit) + ti(Time, Age, k=c(40,5), by=CritUnrel)
+              + s(Time, Event, bs="fs", m=1, k=20), 
+              data=subjectROI_firstE, discrete = FALSE, method="ML",
+              AR.start=subjectROI_firstE$start.event, rho=myrho12.ROIE)
+}else{print(load("./Models/ROI.m72REML.ordCor.rda"))
+}
+
+# Print model summary
+summary(ROI.m72REML.ordCor, re.test=FALSE) 
+
+# Print statistics to report
+report_stats(ROI.m72REML.ordCor)
+
+# Remove model to free workspace
+rm(ROI.m72REML.ordCor)
+
+# Literal reference
+if(FALSE){
+ROI.m72REML.ordLit <- bam( subj.mV ~ CritCor + CritUnrel
+              # reference curve         
+              + s(Time, k=40) 
+              # difference curves
+              + s(Time, by=CritCor) + s(Time, by=CritUnrel) 
+              # reference surface
+              + ti(Time, Age)
+              # difference surface
+              + ti(Time, Age, k=c(40,5), by=CritCor) + ti(Time, Age, k=c(40,5), by=CritUnrel)
+              + s(Time, Event, bs="fs", m=1, k=20), 
+              data=subjectROI_firstE, discrete = FALSE, method="ML",
+              AR.start=subjectROI_firstE$start.event, rho=myrho12.ROIE)
+}else{print(load("./Models/ROI.m72REML.ordLit.rda"))
+  }
+
+# Print model summary
+summary(ROI.m72REML.ordLit, re.test=FALSE)
+
+# Print statistics to report
+report_stats(ROI.m72REML.ordLit)
+
+# Remove model to free workspace
+rm(ROI.m72REML.ordLit)
+
+```
