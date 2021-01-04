@@ -29,4 +29,6 @@ Last update: January 4, 2021
 
 [5. Boxplot of literality ratings](./WordOrderStudy_litboxplot.png)
 
-[6. Appendix I](./WordOrderStudy_AppendixII_final.pfd)
+[6. Appendix I](./TopographicAnalysis_AppendixI_final.pdf)
+
+[7. Appendix II](./WordOrderStudy_AppendixII_final.pdf)
