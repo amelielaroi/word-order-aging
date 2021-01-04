@@ -29,6 +29,6 @@ Last update: January 4, 2021
 
 [5. Boxplot of literality ratings](./WordOrderStudy_litboxplot.png)
 
-[6. Appendix I - Topographic analysis](./TopographicAnalysis_AppendixI_final.pdf)
+[6. Appendix I - Topographic analysis](./WordOrderStudy_AppendixI_final.pdf)
 
 [7. Appendix II - Difference plots per age bin](./WordOrderStudy_AppendixII_final.pdf)
