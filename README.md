@@ -1,7 +1,7 @@
 # word-order-aging
-Supplementary materials for paper: La Roi, A., Hendriks, P., & Sprenger, S.A, Cognitive aging reduces activation of figurative meaning during idiom processing: an ERP study. August 2020. Under review.
+Supplementary materials for paper: La Roi, A., Hendriks, P., & Sprenger, S.A, Cognitive aging slows down deactivation of literal meaning during idiom processing: an ERP study. Under review.
 
-Last update: January 4, 2021
+Last update: February 5, 2021
 
 [1a. Preprocessing of data exported from EEGLAB](./WordOrderStudy_Preprocessing.Rmd)
 
