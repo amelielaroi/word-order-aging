@@ -31,4 +31,4 @@ Last update: February 5, 2021
 
 [6. Appendix I - Topographic analysis](./WordOrderStudy_AppendixI_final_revision.pdf)
 
-[7. Appendix II - Difference plots per age bin](./WordOrderStudy_AppendixII_final_revision.pdf)
+[7. Appendix II - Difference plots across all ages + smooths per age bin](./WordOrderStudy_AppendixII_final_revision.pdf)
